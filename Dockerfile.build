@@ -13,6 +13,7 @@ RUN apk update && \
                        imagemagick \
                        file \
                        postgresql-dev \
+                       postgresql-client \
                        build-base && \
     mkdir -p /usr/share && \
     cd /usr/share \
