@@ -1,0 +1,37 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/solidus
+    docker:
+      - image: google/cloud-sdk:latest
+    steps:
+      - checkout
+
+      - setup_remote_docker:
+          version: 17.06.1-ce
+
+      - run:
+          name: Install Docker client
+          command: |
+            set -x
+            VER="17.06.1-ce"
+            curl -L -o /tmp/docker-$VER.tgz https://download.docker.com/linux/static/stable/x86_64/docker-$VER.tgz
+            tar -xz -C /tmp -f /tmp/docker-$VER.tgz
+            mv /tmp/docker/* /usr/bin
+
+      - run:
+          name: Build Docker image
+          command: |
+            docker build -t ${HOSTNAME}/${GOOGLE_PROJECT_ID}/solidus-build \
+                         -f Dockerfile.build .
+
+      - run:
+          name: Decode Google Container Registry Credentials
+          command: |
+            echo ${GOOGLE_CONTAINER_REGISTRY_AUTH} | base64 -i --decode > ${HOME}/gcp-key.json
+            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+            gcloud --quiet config set project ${GOOGLE_PROJECT_ID}
+
+      - run:
+          name: Push docker image to Google Container Registry
+          command: gcloud docker -- push ${HOSTNAME}/${GOOGLE_PROJECT_ID}/solidus-build
